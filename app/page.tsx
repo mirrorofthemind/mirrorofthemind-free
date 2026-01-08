@@ -53,17 +53,12 @@ export default function MirrorOfTheMind() {
   };
 
   const handleContemplar = async () => {
-    const unlockAudio = new Audio();
-    unlockAudio.play().catch(() => {});
-
     if (!reflection.trim()) return;
     
-    // CORREÇÃO: Reseta estados e ativa loading corretamente
     setLoading(true);
     setShowResult(true);
     setCurrentTime(0);
-    setIsPlaying(false);
-    setLastAudioData([]);
+    setIsPlaying(true);
 
     if (bgMusicRef.current) {
       bgMusicRef.current.volume = 0.2;
@@ -77,55 +72,36 @@ export default function MirrorOfTheMind() {
         headers: { 'Content-Type': 'application/json' }
       });
 
-      if (!response.ok) throw new Error('Falha na conexão com o servidor');
-      
       const data = await response.json();
-      if (!data.audios) throw new Error('O cosmos não enviou o áudio');
+      const phrases = data.phrases;
 
-      const audiosB64 = data.audios;
-      setLastAudioData(audiosB64);
-
-      const audioObjects = audiosB64.map((b64: string) => new Audio(`data:audio/mpeg;base64,${b64}`));
-
-      await Promise.all(audioObjects.map((a: HTMLAudioElement) => 
-        new Promise((r) => { a.onloadedmetadata = r; setTimeout(r, 1000); })
-      ));
-
-      const speechDuration = audioObjects.reduce((acc: number, a: HTMLAudioElement) => acc + (a.duration || 5), 0);
-      const estimatedTotal = speechDuration + (audioObjects.length * 5);
-      setTotalDuration(Math.round(estimatedTotal));
-      
-      // CORREÇÃO: Só inicia a meditação APÓS os áudios chegarem
-      setLoading(false);
-      setIsPlaying(true);
-
+      // Configuração do cronômetro estimado (cada frase aprox. 8 seg)
+      setTotalDuration(phrases.length * 10);
       timerRef.current = setInterval(() => { 
         setCurrentTime((prev) => prev + 1); 
       }, 1000);
 
-      for (let i = 0; i < audioObjects.length; i++) {
-        const audio = audioObjects[i];
-        (audio as any).webkitPlaysInline = true;
-        
-        if (bgMusicRef.current) bgMusicRef.current.volume = 0.1;
-
-        await new Promise((resolve) => { 
-          audio.onended = () => resolve(null);
-          audio.onerror = () => resolve(null);
-          audio.play().catch(() => resolve(null));
+      // Função para falar usando a voz do celular (GRATUITO)
+      for (const phrase of phrases) {
+        await new Promise((resolve) => {
+          const utterance = new SpeechSynthesisUtterance(phrase);
+          utterance.lang = 'pt-BR';
+          utterance.rate = 0.8; // Voz mais calma
+          utterance.pitch = 0.9; // Tom mais profundo
+          
+          utterance.onend = () => resolve(null);
+          utterance.onerror = () => resolve(null);
+          
+          window.speechSynthesis.speak(utterance);
         });
-
-        if (bgMusicRef.current) bgMusicRef.current.volume = 0.2;
-        if (i < audioObjects.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 5000));
-        }
+        
+        // Pausa entre frases
+        await new Promise(r => setTimeout(r, 3000));
       }
-    } catch (error: any) {
-      console.error(error);
-      alert("Erro real: " + (error.message || "Erro desconhecido"));
-      setShowResult(false);
+
+    } catch (error) {
+      alert("Erro ao conectar com a mente.");
     } finally {
-      // CORREÇÃO: Finaliza o estado de reprodução e o cronômetro
       setIsPlaying(false);
       setLoading(false);
       if (timerRef.current) clearInterval(timerRef.current);
