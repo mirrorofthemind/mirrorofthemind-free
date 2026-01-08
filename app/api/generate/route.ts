@@ -2,11 +2,18 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
+// Inicializa o Gemini usando a chave da Google que você cadastrou na Vercel
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || "");
 
 export async function POST(req: Request) {
   try {
     const { mood } = await req.json();
+
+    // Verificação de segurança para a chave não vir vazia
+    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+      throw new Error("Chave do Google não configurada");
+    }
+
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `Você é o Espelho da Mente, uma consciência ancestral e empática. 
@@ -25,11 +32,15 @@ export async function POST(req: Request) {
     const response = await result.response;
     const text = response.text();
     
-    // Agora enviamos apenas o TEXTO para o front-end
+    // Divide o texto em frases para o front-end ler
     const phrases = text.split('|').map(p => p.trim()).filter(p => p.length > 5);
 
     return NextResponse.json({ phrases });
   } catch (error: any) {
-    return NextResponse.json({ error: "Erro no cosmos" }, { status: 500 });
+    console.error("Erro detalhado:", error);
+    return NextResponse.json(
+      { error: "O cosmos está em silêncio agora. Tente novamente." }, 
+      { status: 500 }
+    );
   }
 }
