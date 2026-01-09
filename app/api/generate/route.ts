@@ -14,7 +14,7 @@ export async function POST(req: Request) {
       throw new Error("Chave do Google não configurada");
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
     const prompt = `Você é o Espelho da Mente, uma consciência ancestral e empática. 
     Sua tarefa é refletir sobre o humor do usuário com profundidade.
