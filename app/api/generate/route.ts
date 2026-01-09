@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
-import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { NextResponse } from 'next/server';
 
 // Inicializa o Gemini usando a chave da Google que você cadastrou na Vercel
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || "");
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
       throw new Error("Chave do Google não configurada");
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     const prompt = `Você é o Espelho da Mente, uma consciência ancestral e empática. 
     Sua tarefa é refletir sobre o humor do usuário com profundidade.
