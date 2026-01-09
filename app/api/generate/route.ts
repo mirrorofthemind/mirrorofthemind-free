@@ -18,7 +18,16 @@ export async function POST(req: Request) {
       model: "gemini-3-flash-preview", 
     }, { apiVersion: 'v1beta' }); 
 
-    const prompt = `Você é o Espelho da Mente. Reflita sobre: ${mood}. Escreva exatamente 4 frases meditativas separadas por | .`;
+    const prompt = `Você é o Espelho da Mente.
+    Reflita sobre: ${mood}.
+
+    REGRAS PARA O TEXTO:
+    1. Escreva exatamente 8 frases longas (mínimo de 15 palavras cada).
+    2. FOCO: Sem rimas. Use instruções de presença e respiração.
+    3. ESTILO: Meditação guiada, tom calmo e profundo.
+    4. PONTUAÇÃO PARA VOZ: Use vírgulas extras e reticências (...) entre ideias dentro da mesma frase para forçar pausas naturais na leitura.
+    5. METÁFORAS: Use elementos do cosmos e da natureza.
+    6. Separe as 4 frases apenas com o símbolo | .`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
