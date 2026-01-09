@@ -85,18 +85,31 @@ export default function MirrorOfTheMind() {
       for (const phrase of phrases) {
         await new Promise((resolve) => {
           const utterance = new SpeechSynthesisUtterance(phrase);
-          utterance.lang = 'pt-BR';
-          utterance.rate = 0.8; // Voz mais calma
-          utterance.pitch = 0.9; // Tom mais profundo
           
+          // 1. Selecionando uma voz melhor
+          const voices = window.speechSynthesis.getVoices();
+          // Tentamos encontrar vozes "Google" ou "Premium" que são mais naturais
+          const selectedVoice = voices.find(v => 
+            (v.lang === 'pt-BR' && v.name.includes('Google')) || 
+            (v.lang === 'pt-BR' && v.name.includes('Natural'))
+          ) || voices.find(v => v.lang === 'pt-BR');
+      
+          if (selectedVoice) utterance.voice = selectedVoice;
+      
+          // 2. Ajustes de Tom e Velocidade (O segredo da meditação)
+          utterance.lang = 'pt-BR';
+          utterance.rate = 0.75;  // Mais lento para dar calma
+          utterance.pitch = 0.85; // Um tom levemente mais grave e profundo
+          utterance.volume = 1.0;
+      
           utterance.onend = () => resolve(null);
           utterance.onerror = () => resolve(null);
           
           window.speechSynthesis.speak(utterance);
         });
         
-        // Pausa entre frases
-        await new Promise(r => setTimeout(r, 3000));
+        // 3. Pausa maior entre as frases para o usuário respirar
+        await new Promise(r => setTimeout(r, 4000));
       }
 
     } catch (error) {
