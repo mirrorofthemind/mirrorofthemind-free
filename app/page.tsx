@@ -59,66 +59,64 @@ export default function MirrorOfTheMind() {
     setShowResult(true);
     setCurrentTime(0);
     setIsPlaying(true);
-
+    let fullText = "";
+    let processedPhrases = 0;
+  
     if (bgMusicRef.current) {
       bgMusicRef.current.volume = 0.2;
       bgMusicRef.current.play().catch(() => {});
     }
-
+  
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
         body: JSON.stringify({ mood: reflection }),
-        headers: { 'Content-Type': 'application/json' }
       });
-
-      const data = await response.json();
-      const phrases = data.phrases;
-
-      // Configuração do cronômetro estimado (cada frase aprox. 8 seg)
-      setTotalDuration(phrases.length * 10);
-      timerRef.current = setInterval(() => { 
-        setCurrentTime((prev) => prev + 1); 
-      }, 1000);
-
-      // Função para falar usando a voz do celular (GRATUITO)
-      for (const phrase of phrases) {
-        await new Promise((resolve) => {
-          const utterance = new SpeechSynthesisUtterance(phrase);
-          
-          // 1. Selecionando uma voz melhor
-          const voices = window.speechSynthesis.getVoices();
-          // Tentamos encontrar vozes "Google" ou "Premium" que são mais naturais
-          const selectedVoice = voices.find(v => 
-            (v.lang === 'pt-BR' && v.name.includes('Google')) || 
-            (v.lang === 'pt-BR' && v.name.includes('Natural'))
-          ) || voices.find(v => v.lang === 'pt-BR');
+  
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
       
-          if (selectedVoice) utterance.voice = selectedVoice;
-      
-          // 2. Ajustes de Tom e Velocidade (O segredo da meditação)
-          utterance.lang = 'pt-BR';
-          utterance.rate = 0.75;  // Mais lento para dar calma
-          utterance.pitch = 0.85; // Um tom levemente mais grave e profundo
-          utterance.volume = 1.0;
-      
-          utterance.onend = () => resolve(null);
-          utterance.onerror = () => resolve(null);
-          
-          window.speechSynthesis.speak(utterance);
-        });
+      // O cronômetro agora é uma estimativa
+      setTotalDuration(60); 
+      timerRef.current = setInterval(() => setCurrentTime(p => p + 1), 1000);
+  
+      while (true) {
+        const { done, value } = await reader!.read();
+        if (done) break;
+  
+        fullText += decoder.decode(value, { stream: true });
         
-        // 3. Pausa maior entre as frases para o usuário respirar
-        await new Promise(r => setTimeout(r, 4000));
+        // Verifica se uma frase completa (com |) acabou de chegar
+        const parts = fullText.split('|');
+        
+        // Se temos uma parte nova e completa para falar
+        if (parts.length > processedPhrases + 1) {
+          const phraseToSpeak = parts[processedPhrases].trim();
+          if (phraseToSpeak.length > 5) {
+            setLoading(false); // Tira o loading logo na primeira frase!
+            await speakText(phraseToSpeak);
+            processedPhrases++;
+          }
+        }
       }
-
     } catch (error) {
-      alert("Erro ao conectar com a mente.");
+      console.error(error);
     } finally {
       setIsPlaying(false);
-      setLoading(false);
       if (timerRef.current) clearInterval(timerRef.current);
     }
+  };
+  
+  // Função auxiliar para falar (coloque fora do handleContemplar)
+  const speakText = (text: string) => {
+    return new Promise((resolve) => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'pt-BR';
+      utterance.rate = 0.75;
+      utterance.pitch = 0.85;
+      utterance.onend = () => setTimeout(resolve, 3000); // Pausa após falar
+      window.speechSynthesis.speak(utterance);
+    });
   };
 
   if (!mounted) return null;
